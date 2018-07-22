@@ -1,0 +1,14 @@
+[Unit]
+Description=Python Pi Camera Motion Detector
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -u pycam.py
+WorkingDirectory=/home/pi/pycam
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
