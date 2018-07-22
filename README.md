@@ -22,3 +22,6 @@ In principle, the same approach could be used with USB and network cameras produ
 H.264 streams. Those do not provide the handy motion vector side channel, though, so
 a H.264 parser and motion vector extractor will be required.
 
+## TODO
+
+1. Add installation instructions to readme
