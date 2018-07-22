@@ -9,9 +9,12 @@ import queue
 import signal
 import logging
 import time
+import numpy as np
+from PIL import Image
 from motion_vector_reader import MotionVectorReader
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
+
 
 class MotionRecorder(threading.Thread):
   """Record video into a circular memory buffer and extract motion vectors for
@@ -23,15 +26,15 @@ class MotionRecorder(threading.Thread):
   # for V1 camera: 1296x972, for V2 camera: 1640x1232. Also use sensor_mode: 4
   width = 1640
   height = 1232
-  framerate = 10  # lower framerate for more time on per-frame analysis
+  framerate = 15  # lower framerate for more time on per-frame analysis
   bitrate = 1000000  # 2Mbps is a high quality stream for 10 fps HD video
   prebuffer = 5  # number of seconds to keep in buffer
   postbuffer = 5  # number of seconds to record post end of motion
   overlay = True
   video_dir = os.path.join(current_dir, 'videos')
   image_dir = os.path.join(current_dir, 'images')
-  video_file_pattern = '%Y-%m-%d_%H-%M-%S.h264' # filename pattern for time.strfime  
-  image_file_pattern = '%Y-%m-%d_%H-%M-%S.jpg'  # filename pattern for time.strfime
+  video_file_pattern = '%Y-%m-%d_%H-%M-%S'  # filename pattern for time.strfime
+  image_file_pattern = '%Y-%m-%d_%H-%M-%S'  # filename pattern for time.strfime
   rotation = 180
   # number of connected MV blocks (each 16x16 pixels) to count as a moving object
   _area = 25
@@ -40,6 +43,9 @@ class MotionRecorder(threading.Thread):
   _camera = None
   _motion = None
   _output = None
+
+  captures = queue.Queue()
+  images = queue.Queue()
 
   def __enter__(self):
     self.start_camera()
@@ -114,15 +120,14 @@ class MotionRecorder(threading.Thread):
                            inline_headers=True, intra_period=self.prebuffer*self.framerate // 2)
     camera.wait_recording(1)  # give camera some time to start up
 
-  captures = queue.Queue()
-  images = queue.Queue()
-
   def capture_jpeg(self):
     name = time.strftime(self.image_file_pattern)
-    path = os.path.join(self.image_dir, name)
-    self._camera.capture(path, use_video_port=True, format='jpeg', quality=65)
-    # Compress image
-    # Image.open(path).save(path, 'JPEG', quality=65)
+    tmp_path = os.path.join(self.image_dir, name+'-temp.jpg')
+    path = os.path.join(self.image_dir, name+'.jpg')
+    self._camera.capture(tmp_path, use_video_port=True, format='jpeg', quality=100)
+    img = Image.open(tmp_path)
+    img.save(path, 'JPEG', quality=75)
+    os.remove(tmp_path)
     return path
 
   def run(self):
@@ -142,14 +147,18 @@ class MotionRecorder(threading.Thread):
             # start a new video, then append circular buffer to it until
             # motion ends
             name = time.strftime(self.video_file_pattern)
-            path = os.path.join(self.video_dir, name)
+            path = os.path.join(self.video_dir, name+'.h264')
             output = io.open(path, 'wb')
             self.append_buffer(output, header=True)
-            img_path = self.capture_jpeg()
-            self.images.put(img_path)
+            self.images.put(self.capture_jpeg())  # Capture image in the beginning of motion
             while self._motion.motion() and self._camera.recording:
               self.wait(self.prebuffer / 2)
               self.append_buffer(output)
+            # Wrap h264 in mkv container with appropriate fps
+            mkvpath = os.path.join(self.video_dir, name+'.mkv')
+            os.system('ffmpeg -r '+str(self.framerate)+' -i '+path +
+                      ' -vcodec copy '+mkvpath+' >/dev/null 2>&1')
+            os.remove(path)  # Delete original .h264 file
           except picamera.PiCameraError as e:
             logging.error("while saving recording: "+e)
             pass
@@ -157,7 +166,7 @@ class MotionRecorder(threading.Thread):
             output.close()
             self._output = None
             self._camera.led = False
-            self.captures.put(path)
+            self.captures.put(mkvpath)
           # wait for the circular buffer to fill up before looping again
           self.wait(self.prebuffer / 2)
 

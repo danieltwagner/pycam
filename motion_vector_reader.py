@@ -14,6 +14,7 @@ def profile(func):
 
 #from profilehooks import profile
 
+
 class MotionVectorReader(picamera.array.PiMotionAnalysis):
   """This is a hardware-assisted motion detector, able to process a high-definition
   video stream (but not full HD, and at 10 fps only) on a Raspberry Pi 1, despite
