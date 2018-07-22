@@ -3,6 +3,7 @@
 import os
 import telegram
 import threading
+import logging
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from httplib2 import Http
@@ -27,7 +28,8 @@ class Notification:
       args = tools.argparser.parse_args()
       args.noauth_local_webserver = True
       credentials = tools.run_flow(flow, store, args)
-    service = build('drive', 'v3', http=credentials.authorize(Http()))
+    service = build('drive', 'v3', http=credentials.authorize(
+        Http()), cache_discovery=False)
     return service
 
   def notify_image(self, image):
