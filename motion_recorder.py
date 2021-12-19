@@ -24,21 +24,22 @@ class MotionRecorder(threading.Thread):
 
   # half of hardware resolution leaves us HD 4:3 and provides 2x2 binning
   # for V1 camera: 1296x972, for V2 camera: 1640x1232. Also use sensor_mode: 4
-  width = 1640
-  height = 1232
-  framerate = 15  # lower framerate for more time on per-frame analysis
-  bitrate = 1000000  # 2Mbps is a high quality stream for 10 fps HD video
-  prebuffer = 5  # number of seconds to keep in buffer
-  postbuffer = 5  # number of seconds to record post end of motion
-  overlay = True
+  width = int(os.getenv('PYCAM_WIDTH'))
+  height = int(os.getenv('PYCAM_HEIGHT'))
+  framerate = int(os.getenv('PYCAM_FPS'))  # lower framerate for more time on per-frame analysis
+  bitrate = int(os.getenv('PYCAM_BITRATE_KBPS')) * 1000  # 2Mbps is a high quality stream for 10 fps HD video
+  prebuffer = int(os.getenv('PYCAM_PREBUFFER_SEC'))  # number of seconds to keep in buffer
+  postbuffer = int(os.getenv('PYCAM_POSTBUFFER_SEC'))  # number of seconds to record post end of motion
+  overlay = bool(int(os.getenv('PYCAM_OVERLAY')))
+  capture_still = bool(int(os.getenv('PYCAM_JPEG')))
   video_dir = os.path.join(current_dir, 'videos')
   image_dir = os.path.join(current_dir, 'images')
   video_file_pattern = '%Y-%m-%d_%H-%M-%S'  # filename pattern for time.strfime
   image_file_pattern = '%Y-%m-%d_%H-%M-%S'  # filename pattern for time.strfime
-  rotation = 180
+  rotation = int(os.getenv('PYCAM_ROTATION'))
   # number of connected MV blocks (each 16x16 pixels) to count as a moving object
-  _area = 25
-  _frames = 4  # number of frames which must contain movement to trigger
+  _area = int(os.getenv('PYCAM_DETECT_BLOCKS'))
+  _frames = int(os.getenv('PYCAM_DETECT_FRAMES'))  # number of frames which must contain movement to trigger
 
   _camera = None
   _motion = None
@@ -143,6 +144,7 @@ class MotionRecorder(threading.Thread):
       if self._motion.wait(self.prebuffer):
         if self._motion.motion():
           self._camera.led = True
+          logging.info("Detected motion")
           try:
             # start a new video, then append circular buffer to it until
             # motion ends
@@ -150,23 +152,30 @@ class MotionRecorder(threading.Thread):
             path = os.path.join(self.video_dir, name+'.h264')
             output = io.open(path, 'wb')
             self.append_buffer(output, header=True)
-            self.images.put(self.capture_jpeg())  # Capture image in the beginning of motion
+
+            # Capture image in the beginning of motion
+            if self.capture_still:
+              self.images.put(self.capture_jpeg())
+
             while self._motion.motion() and self._camera.recording:
               self.wait(self.prebuffer / 2)
               self.append_buffer(output)
+
+          except picamera.PiCameraError as e:
+            logging.error("while saving recording: "+e)
+
+          finally:
+            output.close()
+            self._output = None
+            self._camera.led = False
+
             # Wrap h264 in mkv container with appropriate fps
             mkvpath = os.path.join(self.video_dir, name+'.mkv')
             os.system('ffmpeg -r '+str(self.framerate)+' -i '+path +
                       ' -vcodec copy '+mkvpath+' >/dev/null 2>&1')
             os.remove(path)  # Delete original .h264 file
-          except picamera.PiCameraError as e:
-            logging.error("while saving recording: "+e)
-            pass
-          finally:
-            output.close()
-            self._output = None
-            self._camera.led = False
             self.captures.put(mkvpath)
+
           # wait for the circular buffer to fill up before looping again
           self.wait(self.prebuffer / 2)
 

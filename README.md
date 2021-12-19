@@ -22,6 +22,16 @@ In principle, the same approach could be used with USB and network cameras produ
 H.264 streams. Those do not provide the handy motion vector side channel, though, so
 a H.264 parser and motion vector extractor will be required.
 
-## TODO
+## Setup
 
-1. Add installation instructions to readme
+Getting Google Drive credentials:
+1. https://developers.google.com/workspace/guides/create-project
+2. https://developers.google.com/workspace/guides/configure-oauth-consent
+3. https://developers.google.com/workspace/guides/create-credentials
+
+Installation on Raspberry Pi OS Buster
+```
+sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev
+pip3 install -r requirements.txt
+cp .env.example .env
+```

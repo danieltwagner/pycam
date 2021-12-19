@@ -1,14 +1,15 @@
 #!/usr/bin/python3
 
 import os
+from dotenv import load_dotenv
+current_dir = os.path.dirname(os.path.realpath(__file__))
+load_dotenv(verbose=True, dotenv_path=os.path.join(current_dir, '.env'))
+
 import logging
 import threading
-from dotenv import load_dotenv
 from motion_recorder import MotionRecorder
 from notification import Notification
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-load_dotenv(verbose=True, dotenv_path=os.path.join(current_dir, '.env'))
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)-8s %(message)s')
