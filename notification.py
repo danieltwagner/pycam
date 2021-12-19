@@ -8,6 +8,7 @@ import logging
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from httplib2 import Http
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
@@ -25,7 +26,7 @@ class Notification:
 
   def setup_gdrive(self):
     # Setup the Drive v3 API
-    SCOPES = 'https://www.googleapis.com/auth/drive.file'
+    SCOPES = ['https://www.googleapis.com/auth/drive.file']
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first

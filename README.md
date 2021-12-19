@@ -31,7 +31,7 @@ Getting Google Drive credentials:
 
 Installation on Raspberry Pi OS Buster
 ```
-sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev
+sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev rpi.gpio
 pip3 install -r requirements.txt
 cp .env.example .env
 ```
