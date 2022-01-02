@@ -1,5 +1,6 @@
 picamera
-numpy
+# https://github.com/numpy/numpy/issues/18131 -- as of 2022-01-02 numpy 1.21.4 works while 1.21.5 crashes
+numpy==1.21.4
 scipy
 python-dotenv
 python-telegram-bot
