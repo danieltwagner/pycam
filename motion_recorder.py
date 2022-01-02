@@ -30,8 +30,8 @@ class MotionRecorder(threading.Thread):
   bitrate = int(os.getenv('PYCAM_BITRATE_KBPS')) * 1000  # 2Mbps is a high quality stream for 10 fps HD video
   prebuffer = int(os.getenv('PYCAM_PREBUFFER_SEC'))  # number of seconds to keep in buffer
   postbuffer = int(os.getenv('PYCAM_POSTBUFFER_SEC'))  # number of seconds to record post end of motion
-  overlay = bool(int(os.getenv('PYCAM_OVERLAY')))
-  capture_still = bool(int(os.getenv('PYCAM_JPEG')))
+  overlay = int(os.getenv('PYCAM_OVERLAY'))
+  capture_still = int(os.getenv('PYCAM_JPEG'))
   video_dir = os.path.join(current_dir, 'videos')
   image_dir = os.path.join(current_dir, 'images')
   video_file_pattern = '%Y-%m-%d_%H-%M-%S'  # filename pattern for time.strfime

@@ -29,6 +29,11 @@ Getting Google Drive credentials:
 2. https://developers.google.com/workspace/guides/configure-oauth-consent
 3. https://developers.google.com/workspace/guides/create-credentials
 
+Dropbox credentials:
+- create app (scoped, app folder, permissions: files.metadata.{read,write}, files.content.write)
+- set access token expiration: no expiration
+- generate a single access token, write it into `token_dbx.txt`
+
 Installation on Raspberry Pi OS Buster
 ```
 sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev rpi.gpio
