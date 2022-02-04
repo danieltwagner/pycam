@@ -40,3 +40,11 @@ sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 
 pip3 install -r requirements.txt
 cp .env.example .env
 ```
+
+To run pycam on startup, edit `pycam.service` to have the right `WorkingDirectory` and:
+```
+sudo cp pycam.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable pycam
+sudo systemctl start pycam
+```
