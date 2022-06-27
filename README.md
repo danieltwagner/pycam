@@ -34,9 +34,9 @@ Dropbox credentials:
 - set access token expiration: no expiration
 - generate a single access token, write it into `token_dbx.txt`
 
-Installation on Raspberry Pi OS Buster
+Installation on Raspberry Pi OS Bullseye
 ```
-sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev rpi.gpio
+sudo apt update && sudo apt install -y ffmpeg python3-pip libopenjp2-7 libtiff5 libatlas-base-dev python3-rpi.gpio
 pip3 install -r requirements.txt
 cp .env.example .env
 ```
