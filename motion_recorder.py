@@ -3,8 +3,7 @@
 import io
 import os
 import threading
-import picamera
-import picamera.array
+import picamerax as picamera
 import queue
 import signal
 import logging
@@ -26,7 +25,8 @@ class MotionRecorder(threading.Thread):
   # for V1 camera: 1296x972, for V2 camera: 1640x1232. Also use sensor_mode: 4
   width = int(os.getenv('PYCAM_WIDTH'))
   height = int(os.getenv('PYCAM_HEIGHT'))
-  framerate = int(os.getenv('PYCAM_FPS'))  # lower framerate for more time on per-frame analysis
+  framerate_min = int(os.getenv('PYCAM_FPS_MIN'))  # lowest framerate used e.g. at night
+  framerate_max = int(os.getenv('PYCAM_FPS_MAX'))  # highest frame rate used. lower the max framerate for more time on per-frame analysis
   bitrate = int(os.getenv('PYCAM_BITRATE_KBPS')) * 1000  # 2Mbps is a high quality stream for 10 fps HD video
   prebuffer = int(os.getenv('PYCAM_PREBUFFER_SEC'))  # number of seconds to keep in buffer
   postbuffer = int(os.getenv('PYCAM_POSTBUFFER_SEC'))  # number of seconds to record post end of motion
@@ -107,18 +107,19 @@ class MotionRecorder(threading.Thread):
     intra frames that there is at least one in the in-memory circular buffer when
     motion is detected."""
     self._camera = camera = picamera.PiCamera(clock_mode='raw', sensor_mode=4,
-                                              resolution=(self.width, self.height), framerate=self.framerate)
+                                              resolution=(self.width, self.height), framerate_range=(self.framerate_min, self.framerate_max))
     camera.rotation = self.rotation
+    camera.exposure_mode = 'night'
     #camera.sensor_mode = 4
     if self.overlay:
       camera.start_preview(alpha=255)
     self._stream = stream = picamera.PiCameraCircularIO(
         camera, seconds=self.prebuffer+1, bitrate=self.bitrate)
     self._motion = motion = MotionVectorReader(
-        camera, window=self.postbuffer*self.framerate, area=self.area, frames=self.frames)
+        camera, window=self.postbuffer*self.framerate_max, area=self.area, frames=self.frames)
     camera.start_recording(stream, motion_output=motion,
                            format='h264', profile='high', level='4.1', bitrate=self.bitrate,
-                           inline_headers=True, intra_period=self.prebuffer*self.framerate // 2)
+                           inline_headers=True, intra_period=self.prebuffer*self.framerate_max // 2)
     camera.wait_recording(1)  # give camera some time to start up
 
   def capture_jpeg(self):
@@ -144,7 +145,7 @@ class MotionRecorder(threading.Thread):
       if self._motion.wait(self.prebuffer):
         if self._motion.motion():
           self._camera.led = True
-          logging.info("Detected motion")
+          logging.info(f"Detected motion. Current exposure speed is {self._camera.exposure_speed}us, analog gain is {self._camera.analog_gain}, digital gain is {self._camera.digital_gain}.")
           try:
             # start a new video, then append circular buffer to it until
             # motion ends
@@ -170,8 +171,9 @@ class MotionRecorder(threading.Thread):
             self._camera.led = False
 
             # Wrap h264 in mkv container with appropriate fps
+            # TODO: we have a variable framerate stream but encode this as fixed maximum fps
             mkvpath = os.path.join(self.video_dir, name+'.mkv')
-            os.system('ffmpeg -r '+str(self.framerate)+' -i '+path +
+            os.system('ffmpeg -r '+str(self.framerate_max)+' -i '+path +
                       ' -vcodec copy '+mkvpath+' >/dev/null 2>&1')
             os.remove(path)  # Delete original .h264 file
             self.captures.put(mkvpath)

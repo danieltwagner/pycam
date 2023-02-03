@@ -1,6 +1,6 @@
 import threading
-import picamera
-import picamera.array
+import picamerax as picamera
+import picamerax.array
 import logging
 import numpy as np
 from scipy import ndimage
